@@ -18,6 +18,7 @@ airootfs_image_tool_options=('-comp' 'xz' '-Xbcj' 'x86' '-b' '1M' '-Xdict-size' 
 bootstrap_tarball_compression=('zstd' '-c' '-T0' '--auto-threads=logical' '--long' '-19')
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
+  ["/etc/sudoers"]="0:0:400"
   ["/home/yami"]="1001:1001:0755"
   ["/home/yami/.config/fish/config.fish"]="1001:1001:0644"
   ["/root"]="0:0:750"

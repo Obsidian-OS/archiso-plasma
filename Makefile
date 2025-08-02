@@ -10,7 +10,7 @@ build_mkobsidiansfs:
 	@echo "Building mkobsidiansfs..."
 	mkdir -p airootfs/etc/
 	cd mkobsidiansfs && chmod +x mkobsidiansfs
-	cd mkobsidiansfs && ./mkobsidiansfs mkobsidiansfs_scripts
+	cd mkobsidiansfs && ./mkobsidiansfs ../mkobsidiansfs_scripts
 	cp mkobsidiansfs/system.sfs airootfs/etc/
 
 build_archiso:

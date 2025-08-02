@@ -1,128 +1,102 @@
 #!/usr/bin/env python3
 import argparse
-import sys
-import os
-import subprocess
-import shlex
-import re
-
-def run_command(command, capture_output=False, text=False, check=True, input=None):
+def run_command(command, **kwargs):
+    kwargs.setdefault("text", True)
+    check = kwargs.pop("check", True)
     try:
-        return subprocess.run(
-            shlex.split(command),
-            capture_output=capture_output,
-            text=text,
+        process = subprocess.run(
+            command if isinstance(command, list) else shlex.split(command),
             check=check,
-            input=input,
+            **kwargs,
         )
+        return process
     except subprocess.CalledProcessError as e:
         print(f"Error executing command: {command}", file=sys.stderr)
-        print(f"Stderr: {e.stderr}", file=sys.stderr)
-        print(f"Stdout: {e.stdout}", file=sys.stderr)
+        print(f"Exit Code: {e.returncode}", file=sys.stderr)
+        if e.stdout:
+            print(f"Stdout: {e.stdout}", file=sys.stderr)
+        if e.stderr:
+            print(f"Stderr: {e.stderr}", file=sys.stderr)
         sys.exit(1)
     except FileNotFoundError:
-        print(
-            f"Error: Command not found. Is '{shlex.split(command)[0]}' in your PATH?",
-            file=sys.stderr,
-        )
+        print(f"Error: Command not found for: {command}", file=sys.stderr)
         sys.exit(1)
+
+
+def _get_part_path(device, part_num):
+    if "nvme" in device:
+        return f"{device}p{part_num}"
+    else:
+        return f"{device}{part_num}"
+
+
+def get_current_slot_systemd():
+    try:
+        bootctl_output = subprocess.check_output(["bootctl", "status"], text=True)
+        match = re.search(
+            r"^\s*id:\s+.*obsidian-([ab])\.conf", bootctl_output, re.MULTILINE
+        )
+        if match:
+            return match.group(1)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    return "unknown"
+
 
 def get_current_slot():
-    """Determines the currently booted A/B slot."""
     try:
-        with open("/proc/cmdline", "r") as f:
-            cmdline = f.read()
-    except FileNotFoundError:
-        return "unknown (/proc/cmdline not found)"
-    except Exception as e:
-        return f"unknown (Error reading /proc/cmdline: {e})"
+        findmnt_output = subprocess.check_output(
+            ["findmnt", "-n", "-o", "SOURCE,UUID,PARTUUID,LABEL,PARTLABEL", "/"],
+            text=True,
+        ).strip()
+        for item in findmnt_output.split():
+            if "_a" in item:
+                return "a"
+            elif "_b" in item:
+                return "b"
 
-    root_param = next((arg for arg in cmdline.split() if arg.startswith("root=")), None)
-
-    if not root_param:
-        return "unknown (Could not determine root from /proc/cmdline)"
-
-    root_value = root_param.split("=", 1)[1]
-    label = None
-
-    if root_value.startswith("LABEL="):
-        label = root_value.split("=", 1)[1]
-    elif root_value.startswith("PARTUUID="):
-        partuuid = root_value.split("=", 1)[1]
-        try:
-            device_path = os.path.realpath(f"/dev/disk/by-partuuid/{partuuid}")
-            if not os.path.exists(device_path):
-                return f"unknown (Device for PARTUUID {partuuid} not found)"
-            label_output = run_command(
-                f"lsblk -no LABEL {device_path}", capture_output=True, text=True
-            ).stdout.strip()
-            if label_output:
-                label = label_output
-            else:
-                return f"unknown (PARTUUID {partuuid} has no label)"
-        except Exception as e:
-            return f"unknown (Error mapping PARTUUID to label: {e})"
-    elif root_value.startswith("UUID="):
-        uuid = root_value.split("=", 1)[1]
-        try:
-            device_path = os.path.realpath(f"/dev/disk/by-uuid/{uuid}")
-            if not os.path.exists(device_path):
-                return f"unknown (Device for UUID {uuid} not found)"
-            label_output = run_command(
-                f"lsblk -no LABEL {device_path}", capture_output=True, text=True
-            ).stdout.strip()
-            if label_output:
-                label = label_output
-            else:
-                return f"unknown (UUID {uuid} has no label)"
-        except Exception as e:
-            return f"unknown (Error mapping UUID to label: {e})"
-    else:
-        return f"unknown (Unsupported root type: {root_value})"
-
-    if label == "root_a":
-        return "a"
-    elif label == "root_b":
-        return "b"
-    else:
-        return f"unknown (Label: {label})"
-
-def _get_part_path(device, num):
-    """Gets the path for a partition, handling different device name schemes."""
-    dev_prefix = "p" if "nvme" in device or "mmcblk" in device else ""
-    return f"{device}{dev_prefix}{num}"
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    return "unknown"
 
 
 def handle_status(args):
-    """Displays system status in a neofetch-like format."""
-
     logo = [
-"   ooooooooooo   ",
-" oo:::::::::::oo ",
-"o:::::::::::::::o",
-"o:::::ooooo:::::o",
-"o::::o     o::::o",
-"o::::o     o::::o",
-"o::::o     o::::o",
-"o::::o     o::::o",
-"o:::::ooooo:::::o",
-"o:::::::::::::::o",
-" oo:::::::::::oo ",
-"   ooooooooooo   "
-]
+        "   ooooooooooo   ",
+        " oo:::::::::::oo ",
+        "o:::::::::::::::o",
+        "o:::::ooooo:::::o",
+        "o::::o     o::::o",
+        "o::::o     o::::o",
+        "o::::o     o::::o",
+        "o::::o     o::::o",
+        "o:::::ooooo:::::o",
+        "o:::::::::::::::o",
+        " oo:::::::::::oo ",
+        "   ooooooooooo   ",
+    ]
 
     info = {}
-    info["Active Slot"] = get_current_slot()
-    info["Kernel"] = run_command("uname -r", capture_output=True, text=True).stdout.strip()
-    info["Uptime"] = run_command("uptime -p", capture_output=True, text=True).stdout.strip().replace("up ", "")
+    info["Active Slot"] = get_current_slot_systemd()
+    info["Current Slot"] = get_current_slot()
+    info["Kernel"] = run_command(
+        "uname -r", capture_output=True, text=True
+    ).stdout.strip()
+    info["Uptime"] = (
+        run_command("uptime -p", capture_output=True, text=True)
+        .stdout.strip()
+        .replace("up ", "")
+    )
     try:
         with open("/etc/os-release") as f:
             os_release = dict(line.strip().split("=", 1) for line in f if "=" in line)
-        info["OS"] = os_release.get("PRETTY_NAME", "Linux").strip('"')
+        info["OS"] = os_release.get("PRETTY_NAME", "GNU/Linux").strip('"')
     except FileNotFoundError:
-        info["OS"] = "Linux"
+        info["OS"] = "GNU/Linux"
 
-    info["Hostname"] = run_command("hostnamectl hostname", capture_output=True, text=True).stdout.strip()
+    info["Hostname"] = run_command(
+        "hostnamectl hostname", capture_output=True, text=True
+    ).stdout.strip()
     cpu_info = run_command("lscpu", capture_output=True, text=True).stdout
     cpu_model_match = re.search(r"Model name:\s+(.*)", cpu_info)
     if cpu_model_match:
@@ -133,7 +107,6 @@ def handle_status(args):
     mem_parts = mem_line.split()
     if len(mem_parts) >= 3:
         info["Memory"] = f"{mem_parts[2]} / {mem_parts[1]}"
-
 
     max_logo_width = max(len(line) for line in logo)
     for i in range(max(len(logo), len(info))):
@@ -147,6 +120,7 @@ def handle_status(args):
         print(f"\033[36m{logo_line}\033[0m  {info_line}")
     print("\n\033[1mPartition Information:\033[0m")
     run_command("lsblk -o NAME,LABEL,SIZE,MOUNTPOINT")
+
 
 def handle_install(args):
     device = args.device
@@ -286,13 +260,13 @@ LABEL=home_ab /home  ext4  defaults,noatime 0 2
     print("Unmounting slot 'a' partitions before copy...")
     run_command(f"umount -R {mount_dir}")
     print("Copying system to slot 'b'...")
-    run_command(f"dd if={part2} of={part3} bs=16M status=progress")
-    run_command(f"e2label {part3} root_b")
+    run_command(f"dd if={part3} of={part4} bs=16M status=progress")
+    run_command(f"e2label {part4} root_b")
     print("Correcting fstab for slot 'b'...")
     mount_b_dir = "/mnt/obsidian_install_b"
     run_command(f"mkdir -p {mount_b_dir}")
     try:
-        run_command(f"mount {part3} {mount_b_dir}")
+        run_command(f"mount {part4} {mount_b_dir}")
         fstab_b_path = f"{mount_b_dir}/etc/fstab"
         if not os.path.exists(os.path.dirname(fstab_b_path)):
             run_command(f"mkdir -p {os.path.dirname(fstab_b_path)}")
@@ -305,29 +279,25 @@ LABEL=home_ab /home  ext4  defaults,noatime 0 2
         run_command(f"umount {mount_b_dir}", check=False)
         run_command(f"rm -r {mount_b_dir}")
 
-    print("Setting up bootloader entries...")
-    esp_mount_dir = "/mnt/obsidian_esp_check"
-    run_command(f"mkdir -p {esp_mount_dir}")
+    print("Installing systemd-boot to ESP_A...")
+    esp_a_mount_dir = "/mnt/obsidian_esp_a"
+    run_command(f"mkdir -p {esp_a_mount_dir}")
     try:
-        run_command(f"mount {part1} {esp_mount_dir}")
-        run_command(f"rsync -aK --delete {mount_dir}/boot/ {esp_mount_dir}/")
-        run_command(f"umount {esp_mount_dir}", check=False)
-        run_command(f"mount {part2} {esp_mount_dir}")
-        kernel_path = f"{esp_mount_dir}/vmlinuz-linux"
-        initramfs_path = f"{esp_mount_dir}/initramfs-linux.img"
-        if not os.path.exists(kernel_path) or not os.path.exists(initramfs_path):
-            print(
-                f"Error: vmlinuz-linux or initramfs-linux.img not found on the ESP partition ({part1}).",
-                file=sys.stderr,
-            )
-            print(
-                "This likely means the system image used for installation did not contain a kernel in /boot.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+        run_command(f"mount {part1} {esp_a_mount_dir}")
+        run_command(f"bootctl --esp-path={esp_a_mount_dir} install")
     finally:
-        run_command(f"umount {esp_mount_dir}", check=False)
-        run_command(f"rm -r {esp_mount_dir}", check=False)
+        run_command(f"umount {esp_a_mount_dir}", check=False)
+        run_command(f"rm -r {esp_a_mount_dir}", check=False)
+
+    print("Installing systemd-boot to ESP_B...")
+    esp_b_mount_dir = "/mnt/obsidian_esp_b"
+    run_command(f"mkdir -p {esp_b_mount_dir}")
+    try:
+        run_command(f"mount {part2} {esp_b_mount_dir}")
+        run_command(f"bootctl --esp-path={esp_b_mount_dir} install")
+    finally:
+        run_command(f"umount {esp_b_mount_dir}", check=False)
+        run_command(f"rm -r {esp_b_mount_dir}", check=False)
 
     root_a_partuuid = run_command(
         f"blkid -s PARTUUID -o value {part3}", capture_output=True, text=True
@@ -341,59 +311,130 @@ LABEL=home_ab /home  ext4  defaults,noatime 0 2
             file=sys.stderr,
         )
         sys.exit(1)
-    efibootmgr_commands = [
-        f"efibootmgr --create --disk {device} --part 1 --label 'ObsidianOS (Slot A)' --loader '\\vmlinuz-linux' --unicode 'root=PARTUUID={root_a_partuuid} rw initrd=\\initramfs-linux.img'",
-        f"efibootmgr --create --disk {device} --part 2 --label 'ObsidianOS (Slot B)' --loader '\\vmlinuz-linux' --unicode 'root=PARTUUID={root_b_partuuid} rw initrd=\\initramfs-linux.img'",
-    ]
-    for cmd in efibootmgr_commands:
-        run_command(cmd)
+
+    loader_conf = """
+timeout 1
+default obsidian-a.conf
+"""
+    entry_a_conf = f"""
+title ObsidianOS (Slot A)
+linux /vmlinuz-linux
+initrd /initramfs-linux.img
+options root=PARTUUID={root_a_partuuid} rw
+"""
+    entry_b_conf = f"""
+title ObsidianOS (Slot B)
+linux /vmlinuz-linux
+initrd /initramfs-linux.img
+options root=PARTUUID={root_b_partuuid} rw
+"""
+
+    esp_a_config_mount_dir = "/mnt/obsidian_esp_a_config"
+    run_command(f"mkdir -p {esp_a_config_mount_dir}")
+    try:
+        run_command(f"mount {part1} {esp_a_config_mount_dir}")
+        run_command(f"mkdir -p {esp_a_config_mount_dir}/loader/entries")
+        with open(f"{esp_a_config_mount_dir}/loader/loader.conf", "w") as f:
+            f.write(loader_conf)
+        with open(f"{esp_a_config_mount_dir}/loader/entries/obsidian-a.conf", "w") as f:
+            f.write(entry_a_conf)
+        with open(f"{esp_a_config_mount_dir}/loader/entries/obsidian-b.conf", "w") as f:
+            f.write(entry_b_conf)
+    finally:
+        run_command(f"umount {esp_a_config_mount_dir}", check=False)
+        run_command(f"rm -r {esp_a_config_mount_dir}", check=False)
+
+    print("Writing boot configuration to ESP_B...")
+    esp_b_config_mount_dir = "/mnt/obsidian_esp_b_config"
+    run_command(f"mkdir -p {esp_b_config_mount_dir}")
+    try:
+        run_command(f"mount {part2} {esp_b_config_mount_dir}")
+        run_command(f"mkdir -p {esp_b_config_mount_dir}/loader/entries")
+        with open(f"{esp_b_config_mount_dir}/loader/loader.conf", "w") as f:
+            f.write(loader_conf)
+        with open(f"{esp_b_config_mount_dir}/loader/entries/obsidian-a.conf", "w") as f:
+            f.write(entry_a_conf)
+        with open(f"{esp_b_config_mount_dir}/loader/entries/obsidian-b.conf", "w") as f:
+            f.write(entry_b_conf)
+    finally:
+        run_command(f"umount {esp_b_config_mount_dir}", check=False)
+        run_command(f"rm -r {esp_b_config_mount_dir}", check=False)
     run_command(f"rm -r {mount_dir}", check=False)
     print("\nInstallation complete!")
     print("Default boot order will attempt Slot A, then Slot B.")
     print("Reboot your system to apply changes.")
 
 
-
 def handle_switch(args):
     slot = args.slot
     print(f"Switching active boot slot to '{slot}'...")
-
-    boot_entries_raw = run_command("efibootmgr", capture_output=True, text=True).stdout
-    boot_order_match = re.search(r"^BootOrder: (.*)$", boot_entries_raw, re.MULTILINE)
-    if not boot_order_match:
-        print("Could not determine boot order from efibootmgr.", file=sys.stderr)
-        sys.exit(1)
-    current_order = boot_order_match.group(1).split(",")
-
-    slot_a_match = re.search(
-        r"^Boot([0-9A-F]{4})\*?.*ObsidianOS \(Slot A\)", boot_entries_raw, re.MULTILINE
-    )
-    slot_b_match = re.search(
-        r"^Boot([0-9A-F]{4})\*?.*ObsidianOS \(Slot B\)", boot_entries_raw, re.MULTILINE
-    )
-    slot_a_entry = slot_a_match.group(1) if slot_a_match else None
-    slot_b_entry = slot_b_match.group(1) if slot_b_match else None
-    if not slot_a_entry or not slot_b_entry:
+    esp_a_path = "/dev/disk/by-label/ESP_A"
+    esp_b_path = "/dev/disk/by-label/ESP_B"
+    if not os.path.exists(esp_a_path) or not os.path.exists(esp_b_path):
         print(
-            "Could not find boot entries for Slot A and Slot B. Was the system installed with obsidianctl?",
+            "ESP partitions not found. Was the system installed with obsidianctl?",
             file=sys.stderr,
         )
         sys.exit(1)
-    new_order = list(current_order)
-    target_entry = slot_a_entry if slot == "a" else slot_b_entry
-    other_entry = slot_b_entry if slot == "a" else slot_a_entry
-    if target_entry in new_order:
-        new_order.remove(target_entry)
-    if other_entry in new_order:
-        new_order.remove(other_entry)
 
-    new_order.insert(0, target_entry)
-    new_order.insert(1, other_entry)
-    final_order_str = ",".join(new_order)
-    run_command(f"efibootmgr --bootorder {final_order_str}")
-    print("Boot order updated.")
-    run_command(f"efibootmgr -n {target_entry}")
-    print(f"Next boot set to Slot {slot.upper()}. The change is persistent.")
+    esp_mount_dir = "/mnt/obsidian_esp_tmp"
+    run_command(f"mkdir -p {esp_mount_dir}")
+    try:
+        run_command(f"mount {esp_a_path} {esp_mount_dir}")
+        run_command(
+            f"bootctl --esp-path={esp_mount_dir} set-default obsidian-{slot}.conf"
+        )
+        print(f"Default boot entry set to obsidian-{slot}.conf on ESP_A.")
+    finally:
+        run_command(f"umount {esp_mount_dir}", check=False)
+
+    try:
+        run_command(f"mount {esp_b_path} {esp_mount_dir}")
+        run_command(
+            f"bootctl --esp-path={esp_mount_dir} set-default obsidian-{slot}.conf"
+        )
+        print(f"Default boot entry set to obsidian-{slot}.conf on ESP_B.")
+    finally:
+        run_command(f"umount {esp_mount_dir}", check=False)
+        run_command(f"rm -r {esp_mount_dir}", check=False)
+
+    print(f"Active boot slot switched to '{slot}'. The change is persistent.")
+    
+def handle_switchonce(args):
+    slot = args.slot
+    print(f"Switching active boot slot to '{slot}' temporarily...")
+    esp_a_path = "/dev/disk/by-label/ESP_A"
+    esp_b_path = "/dev/disk/by-label/ESP_B"
+    if not os.path.exists(esp_a_path) or not os.path.exists(esp_b_path):
+        print(
+            "ESP partitions not found. Was the system installed with obsidianctl?",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    esp_mount_dir = "/mnt/obsidian_esp_tmp"
+    run_command(f"mkdir -p {esp_mount_dir}")
+    try:
+        run_command(f"mount {esp_a_path} {esp_mount_dir}")
+        run_command(
+            f"bootctl --esp-path={esp_mount_dir} set-oneshot obsidian-{slot}.conf"
+        )
+        print(f"Default boot entry set to obsidian-{slot}.conf on ESP_A.")
+    finally:
+        run_command(f"umount {esp_mount_dir}", check=False)
+
+    try:
+        run_command(f"mount {esp_b_path} {esp_mount_dir}")
+        run_command(
+            f"bootctl --esp-path={esp_mount_dir} set-oneshot obsidian-{slot}.conf"
+        )
+        print(f"Default boot entry set to obsidian-{slot}.conf on ESP_B.")
+    finally:
+        run_command(f"umount {esp_mount_dir}", check=False)
+        run_command(f"rm -r {esp_mount_dir}", check=False)
+
+    print(f"Active boot slot switched to '{slot}'. The change is temporarily.")
+
 
 def handle_update(args):
     slot = args.slot
@@ -460,7 +501,12 @@ LABEL=home_ab /home  ext4  defaults,noatime 0 2
     print("You may need to switch to this slot and reboot to use the updated system.")
 
 
-
+import os
+import sys
+import argparse
+import subprocess
+import shlex
+import re
 
 def main():
     if os.geteuid() != 0:
@@ -472,7 +518,6 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter,
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-
     parser_status = subparsers.add_parser(
         "status", help="Show current active slot and system info."
     )
@@ -486,7 +531,13 @@ def main():
     )
     parser_install.add_argument("system_sfs", help="Path to the SquashFS system image.")
     parser_install.set_defaults(func=handle_install)
-
+    parser_switchonce = subparsers.add_parser(
+      "switch-once", help="Switch active boot slot to 'a' or 'b' once only."
+    )
+    parser_switchonce.add_argument(
+      "slot", choices=["a", "b"], help="The slot to make active for once."
+    )
+    parser_switchonce.set_defaults(func=handle_switchonce)
     parser_switch = subparsers.add_parser(
         "switch", help="Switch active boot slot to 'a' or 'b'."
     )

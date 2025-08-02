@@ -15,4 +15,4 @@ build_mkobsidiansfs:
 
 build_archiso:
 	@echo Building ObsidianOS ISO Image...
-	sudo mkarchiso -v -r .
+	mkarchiso -v -r .

@@ -19,6 +19,8 @@ bootstrap_tarball_compression=('zstd' '-c' '-T0' '--auto-threads=logical' '--lon
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/etc/sudoers"]="0:0:400"
+  ["/usr/bin/obsidianctl"]="0:0:755"
+  ["/usr/bin/mkobsidiansfs"]="0:0:755"
   ["/home/yami"]="1001:1001:0755"
   ["/home/yami/.config/fish/config.fish"]="1001:1001:0644"
   ["/root"]="0:0:750"

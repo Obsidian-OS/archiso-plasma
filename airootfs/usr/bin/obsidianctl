@@ -124,7 +124,7 @@ def handle_status(args):
 
 def handle_install(args):
     device = args.device
-    system_sfs = args.system_sfs
+    system_sfs = args.system_sfs or '/etc/system.sfs'
     if not os.path.exists(device):
         print(f"Error: Device '{device}' does not exist.", file=sys.stderr)
         sys.exit(1)
@@ -193,8 +193,8 @@ LABEL=home_ab /home  ext4  defaults,noatime 0 2
     with open(f"{mount_dir}/etc/fstab", "w") as f:
         f.write(fstab_content_a.strip())
 
-    print("Populating shared /etc and /var partitions...")
-    for part_label in ["etc_ab", "var_ab"]:
+    print("Populating shared /etc, /var, and /home partitions...")
+    for part_label in ["etc_ab", "var_ab", "home_ab"]:
         fs_dir = part_label.split("_")[0]
         tmp_mount_dir = f"/mnt/tmp_{fs_dir}"
         run_command(f"mkdir -p {tmp_mount_dir}")

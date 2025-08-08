@@ -14,6 +14,10 @@ mkobsidiansfs:
 	cp mkobsidiansfs/system.sfs airootfs/etc/
 	cp mkobsidiansfs/mkobsidiansfs airootfs/usr/bin/
 
+guidedobsidian:
+	@echo "Building guidedobsidian..."
+	cp guidedobsidian/guidedobsidian airootfs/usr/bin/
+
 archiso:
 	@echo Building ObsidianOS ISO Image...
 	mkarchiso -v -r .

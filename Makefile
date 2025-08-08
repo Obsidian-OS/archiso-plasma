@@ -1,3 +1,4 @@
+PKG_LIST=git fakeroot
 all: build_obsidianctl build_mkobsidiansfs build_archiso
 
 build_obsidianctl:
@@ -10,7 +11,7 @@ build_mkobsidiansfs:
 	@echo "Building mkobsidiansfs..."
 	mkdir -p airootfs/etc/
 	cd mkobsidiansfs && chmod +x mkobsidiansfs
-	cd mkobsidiansfs && ./mkobsidiansfs ../mkobsidiansfs_scripts
+	cd mkobsidiansfs && ./mkobsidiansfs ../mkobsidiansfs_scripts "$(PKG_LIST)"
 	cp mkobsidiansfs/system.sfs airootfs/etc/
 
 build_archiso:

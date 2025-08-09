@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 import argparse
+def checkroot():
+    if os.geteuid() != 0:
+      print("This script must be run as root.", file=sys.stderr)
+      sys.exit(1)
+
 def run_command(command, **kwargs):
     kwargs.setdefault("text", True)
     check = kwargs.pop("check", True)
@@ -123,6 +128,7 @@ def handle_status(args):
 
 
 def handle_install(args):
+    checkroot()
     device = args.device
     system_sfs = args.system_sfs or '/etc/system.sfs'
     if not os.path.exists(device):
@@ -376,6 +382,7 @@ options root=PARTUUID={root_b_partuuid} rw
 
 
 def handle_switch(args):
+    checkroot()
     slot = args.slot
     print(f"Switching active boot slot to '{slot}'...")
     esp_a_path = "/dev/disk/by-label/ESP_A"
@@ -411,6 +418,7 @@ def handle_switch(args):
     print(f"Active boot slot switched to '{slot}'. The change is persistent.")
     
 def handle_switchonce(args):
+    checkroot()
     slot = args.slot
     print(f"Switching active boot slot to '{slot}' temporarily...")
     esp_a_path = "/dev/disk/by-label/ESP_A"
@@ -447,6 +455,7 @@ def handle_switchonce(args):
 
 
 def handle_update(args):
+    checkroot()
     slot = args.slot
     system_sfs = args.system_sfs
     if not os.path.exists(system_sfs):
@@ -519,10 +528,6 @@ import shlex
 import re
 
 def main():
-    if os.geteuid() != 0:
-        print("This script must be run as root.", file=sys.stderr)
-        sys.exit(1)
-
     parser = argparse.ArgumentParser(
         description="Install and manage A/B slot system with shared partitions on ObsidianOS.",
         formatter_class=argparse.RawTextHelpFormatter,

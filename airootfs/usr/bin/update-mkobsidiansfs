@@ -1,0 +1,3 @@
+#!/bin/bash
+sudo curl https://raw.githubusercontent.com/Obsidian-OS/mkobsidiansfs/refs/heads/main/mkobsidiansfs -o /usr/bin/mkobsidiansfs
+echo "[+] Updated."

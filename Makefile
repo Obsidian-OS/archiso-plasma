@@ -1,4 +1,4 @@
-all: obsidianctl mkobsidiansfs guidedobsidian archiso# archiso must be at the end!
+all: obsidianctl mkobsidiansfs archiso
 
 obsidianctl:
 	@echo "Building obsidianctl..."
@@ -13,10 +13,6 @@ mkobsidiansfs:
 	cd mkobsidiansfs && ./mkobsidiansfs ../config.mkobsfs
 	cp mkobsidiansfs/system.sfs airootfs/etc/
 	cp mkobsidiansfs/mkobsidiansfs airootfs/usr/bin/
-
-guidedobsidian:
-	@echo "Building guidedobsidian..."
-	cp guidedobsidian/guidedobsidian airootfs/usr/bin/
 
 archiso:
 	@echo Building ObsidianOS ISO Image...

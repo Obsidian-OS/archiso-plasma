@@ -1,4 +1,4 @@
-all: obsidianctl mkobsidiansfs guidedobsidian archiso
+all: obsidianctl mkobsidiansfs guidedobsidian archiso# archiso must be at the end!
 
 obsidianctl:
 	@echo "Building obsidianctl..."

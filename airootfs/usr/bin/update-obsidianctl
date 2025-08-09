@@ -1,8 +1,0 @@
-#!/bin/bash
-cd ~
-git clone https://github.com/Obsidian-OS/obsidianctl
-cd obsidianctl
-make
-cp obsidianctl /usr/bin/obsidianctl
-echo "[+] Updated."
-rm -rf ~/obsidianctl

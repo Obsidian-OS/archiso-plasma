@@ -3,6 +3,7 @@ PACKAGES="base linux linux-firmware networkmanager sudo vim nano efibootmgr pyth
 OUTPUT_SFS="system.sfs" # Output SquashFS
 TIMEZONE=""             # Olson Timezone
 HOSTNAME="obsidianbtw"  # Hostname
+ROOT_HAVEPASSWORD="nopassword"    # Set this to anything other than blank to remove the password from the root user.
 CUSTOM_SCRIPTS_DIR=""   # Place where scripts that must run in the SquashFS will run.
 ADMIN_USER="user"           # Creates an user with the 'wheel' group
 ADMIN_DOTFILES=""       # If an admin is created, a git repo that will be cloned to the new user.

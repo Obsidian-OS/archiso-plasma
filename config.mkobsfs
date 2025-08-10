@@ -1,5 +1,5 @@
 BUILD_DIR="obsidian_rootfs" # SquashFS generation directory # Below is default packages for an install of arch and this script to work.
-PACKAGES="base linux linux-firmware networkmanager sudo vim nano efibootmgr python squashfs-tools arch-install-scripts base-devel git"
+PACKAGES="base linux linux-firmware networkmanager sudo vim nano efibootmgr python squashfs-tools arch-install-scripts base-devel git gptfdisk"
 OUTPUT_SFS="system.sfs" # Output SquashFS
 TIMEZONE=""             # Olson Timezone
 HOSTNAME="obsidianbtw"  # Hostname

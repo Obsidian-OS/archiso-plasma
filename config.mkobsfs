@@ -1,8 +1,9 @@
 BUILD_DIR="obsidian_rootfs" # SquashFS generation directory # Below is default packages for an install of arch and this script to work.
-PACKAGES="base linux linux-firmware networkmanager sudo vim nano efibootmgr python squashfs-tools arch-install-scripts base-devel git gptfdisk"
+PACKAGES="base linux linux-firmware networkmanager sudo vim nano efibootmgr python squashfs-tools arch-install-scripts base-devel git gptfdisk wget"
 OUTPUT_SFS="system.sfs" # Output SquashFS
 TIMEZONE=""             # Olson Timezone
 HOSTNAME="obsidianbtw"  # Hostname
+YAY_GET="obsidianctl-git junest-git"
 ROOT_HAVEPASSWORD="nopassword"    # Set this to anything other than blank to remove the password from the root user.
 CUSTOM_SCRIPTS_DIR=""   # Place where scripts that must run in the SquashFS will run.
 ADMIN_USER="user"           # Creates an user with the 'wheel' group

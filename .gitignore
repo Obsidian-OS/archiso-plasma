@@ -2,4 +2,5 @@ out/
 airootfs/etc/system.sfs
 airootfs/usr/bin/obsidianctl
 airootfs/usr/bin/mkobsidiansfs
+airootfs/usr/bin/obsidian-wizard
 work/

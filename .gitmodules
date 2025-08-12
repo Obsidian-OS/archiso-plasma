@@ -7,3 +7,6 @@
 [submodule "preconf"]
   path = airootfs/usr/preconf
   url = https://github.com/Obsidian-OS/preconf
+[submodule "obsidian-wizard"]
+  path = obsidian-wizard
+  url = https://github.com/Obsidian-OS/obsidian-wizard

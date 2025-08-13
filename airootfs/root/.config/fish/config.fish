@@ -1,3 +1,5 @@
 set fish_greeting
 alias ":q=exit"
-obsidian-wizard
+if status --is-interactive
+  obsidian-wizard
+end

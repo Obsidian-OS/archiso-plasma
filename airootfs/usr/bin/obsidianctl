@@ -307,7 +307,7 @@ LABEL=home_ab /home  ext4  defaults,noatime 0 2
     print("Unmounting slot 'a' partitions before copy...")
     run_command(f"umount -R {mount_dir}")
     print("Copying system to slot 'b'...")
-    run_command(f"dd if={part3} of={part4} bs=16M status=progress")
+    run_command(f"bash -c \"pv \\\"{part3}\\\" | dd oflag=sync of={part4} bs=16M\"")
     run_command(f"e2label {part4} root_b")
     print("Correcting fstab for slot 'b'...")
     mount_b_dir = "/mnt/obsidian_install_b"
@@ -461,22 +461,18 @@ efi {device_path}
 
 def handle_mkobsidiansfs(args):
     if shutil.which("mkobsidiansfs"):
-        os.system(f"mkobsidiansfs {args.system_sfs}")
+        os.system(f"mkobsidiansfs {args.system_sfs} system.sfs")
     else:
         if shutil.which("git"):
             os.system(f"git clone https://github.com/Obsidian-OS/mkobsidiansfs/ /tmp/mkobsidiansfs;chmod u+x /tmp/mkobsidiansfs/mkobsidiansfs;/tmp/mkobsidiansfs/mkobsidiansfs {args.system_sfs} tmp_system.sfs")
         else:
             print("No git or mkobsidiansfs found. Please install one of these to directly pass in an .mkobsfs.")
             sys.exit(1)
-    args.system_sfs="tmp_system.sfs"
+    args.system_sfs="system.sfs"
     handle_install(args)
-    os.remove("tmp_system.sfs")
+    os.remove("system.sfs")
     
 def handle_install(args):
-    if args.dual_boot:
-        handle_dual_boot(args)
-        return
-
     checkroot()
     device = args.device
     system_sfs = args.system_sfs or '/etc/system.sfs'
@@ -484,7 +480,10 @@ def handle_install(args):
     if ext==".mkobsfs":
         handle_mkobsidiansfs(args)
         sys.exit()
-    
+    if args.dual_boot:
+        handle_dual_boot(args)
+        return
+
     if not os.path.exists(device):
         print(f"Error: Device '{device}' does not exist.", file=sys.stderr)
         sys.exit(1)
@@ -633,7 +632,7 @@ LABEL=home_ab /home  ext4  defaults,noatime 0 2
     print("Unmounting slot 'a' partitions before copy...")
     run_command(f"umount -R {mount_dir}")
     print("Copying system to slot 'b'...")
-    run_command(f"dd if={part3} of={part4} bs=16M status=progress")
+    run_command(f"bash -c \"pv \\\"{part3}\\\" | dd of={part4} bs=16M oflag=sync\"")
     run_command(f"e2label {part4} root_b")
     print("Correcting fstab for slot 'b'...")
     mount_b_dir = "/mnt/obsidian_install_b"
@@ -811,6 +810,19 @@ def handle_switchonce(args):
     print(f"Active boot slot switched to '{slot}'. The change is temporarily.")
 
 
+def handle_update_mkobsidiansfs(args):
+    if shutil.which("mkobsidiansfs"):
+        os.system(f"mkobsidiansfs {args.system_sfs} system.sfs")
+    else:
+        if shutil.which("git"):
+            os.system(f"git clone https://github.com/Obsidian-OS/mkobsidiansfs/ /tmp/mkobsidiansfs;chmod u+x /tmp/mkobsidiansfs/mkobsidiansfs;/tmp/mkobsidiansfs/mkobsidiansfs {args.system_sfs} tmp_system.sfs")
+        else:
+            print("No git or mkobsidiansfs found. Please install one of these to directly pass in an .mkobsfs.")
+            sys.exit(1)
+    args.system_sfs="system.sfs"
+    handle_update(args)
+    os.remove("system.sfs")
+    
 def handle_update(args):
     checkroot()
     slot = args.slot
@@ -818,7 +830,10 @@ def handle_update(args):
     if not os.path.exists(system_sfs):
         print(f"Error: System image '{system_sfs}' not found.", file=sys.stderr)
         sys.exit(1)
-
+    _, ext = os.path.splitext(system_sfs)
+    if ext==".mkobsfs":
+        handle_update_mkobsidiansfs(args)
+        sys.exit()
     target_label = f"root_{slot}"
     esp_label = f"ESP_{slot.upper()}"
     print(f"Updating slot '{slot}' with image '{system_sfs}'...")
@@ -879,7 +894,17 @@ LABEL=home_ab /home  ext4  defaults,noatime 0 2
 
 def handle_sync(args):
     check_dependencies(
-        ["findfs", "blkid", "dd", "tune2fs", "sgdisk", "lsblk", "e2label", "fatlabel"]
+        [
+            "findfs",
+            "blkid",
+            "dd",
+            "tune2fs",
+            "sgdisk",
+            "lsblk",
+            "e2label",
+            "fatlabel",
+            "pv",
+        ]
     )
     checkroot()
     target_slot = args.slot
@@ -944,7 +969,7 @@ def handle_sync(args):
         sys.exit(1)
 
     print("Copying data from source root to target root. This may take a while...")
-    run_command(f"dd if={source_root_dev} of={target_root_dev} bs=4M status=progress")
+    run_command(f'bash -c "pv "{source_root_dev}" |dd oflag=sync of={target_root_dev} bs=4M"')
     print(f"Setting label of {target_root_dev} to {target_root_label}")
     run_command(f"e2label {target_root_dev} {target_root_label}")
     print("Restoring original filesystem identifier for the root partition...")
@@ -958,7 +983,7 @@ def handle_sync(args):
         f"sgdisk --partition-guid={partition_number}:{target_root_part_uuid} /dev/{target_disk}"
     )
     print("Copying data from source ESP to target ESP...")
-    run_command(f"dd if={source_esp_dev} of={target_esp_dev} bs=1M status=progress")
+    run_command(f'bash -c "pv "{source_esp_dev}" | dd oflag=sync of={target_esp_dev} bs=1M"')
     print(f"Setting label of {target_esp_dev} to {target_esp_label}")
     run_command(f"fatlabel {target_esp_dev} {target_esp_label}")
     print("Restoring original partition identifier for the ESP...")
@@ -971,6 +996,167 @@ def handle_sync(args):
     )
     print("Sync complete.")
 
+
+import os
+import subprocess
+import shutil
+import sys
+import time
+
+def handle_enter(args):
+    if os.geteuid() != 0:
+        print("This command must be run as root.", file=sys.stderr)
+        sys.exit(1)
+
+    slot = args.slot
+    root_label = f"root_{slot}"
+    esp_label = f"ESP_{slot.upper()}"
+    root_partition = f"/dev/disk/by-label/{root_label}"
+    esp_partition = f"/dev/disk/by-label/{esp_label}"
+    mount_point = f"/mnt/obsidian_{slot}"
+    if not os.path.exists(root_partition):
+        print(f"Root partition for slot {slot} ({root_partition}) not found.", file=sys.stderr)
+        sys.exit(1)
+    if not os.path.exists(esp_partition):
+        print(f"ESP for slot {slot} ({esp_partition}) not found.", file=sys.stderr)
+        sys.exit(1)
+
+    if not os.path.exists(mount_point):
+        os.makedirs(mount_point)
+
+    try:
+        subprocess.run(["mount", root_partition, mount_point], check=True)
+        subprocess.run(["mount", esp_partition, f"{mount_point}/boot", "--mkdir"], check=True)
+
+        for shared_part in ["etc_ab", "var_ab", "home_ab"]:
+            shared_partition = f"/dev/disk/by-label/{shared_part}"
+            if os.path.exists(shared_partition):
+                fs_dir = shared_part.split("_")[0]
+                target_mount = os.path.join(mount_point, fs_dir)
+                if not os.path.exists(target_mount):
+                    os.makedirs(target_mount)
+                subprocess.run(["mount", shared_partition, target_mount], check=True)
+
+        if shutil.which("arch-chroot"): 
+            cmd = ["arch-chroot"]
+            if not args.enable_networking:
+                cmd.append("-r")
+            
+            cmd.append(mount_point)
+            subprocess.run(cmd, check=True)
+        else:
+            print("WARNING: arch-chroot not found, performing manual chroot...")
+            if args.mount_essentials:
+                for essential_fs in ["proc", "sys", "dev", "dev/pts", "dev/shm"]:
+                    target_mount = os.path.join(mount_point, essential_fs)
+                    if not os.path.exists(target_mount):
+                        os.makedirs(target_mount, exist_ok=True)
+                    subprocess.run(["mount", "--bind", f"/{essential_fs}", target_mount], check=True)
+
+            if args.enable_networking:
+                if os.path.exists("/etc/resolv.conf"):
+                    os.makedirs(os.path.join(mount_point, "etc"), exist_ok=True)
+                    subprocess.run(["cp", "/etc/resolv.conf", os.path.join(mount_point, "etc/resolv.conf")], check=True)
+
+            if args.mount_home:
+                home_mount = os.path.join(mount_point, "home")
+                if not os.path.exists(home_mount):
+                    os.makedirs(home_mount)
+                subprocess.run(["mount", "--bind", "/home", home_mount], check=True)
+            
+            if args.mount_root:
+                root_mount = os.path.join(mount_point, "root")
+                if not os.path.exists(root_mount):
+                    os.makedirs(root_mount)
+                subprocess.run(["mount", "--bind", "/root", root_mount], check=True)
+
+            os.chroot(mount_point)
+            os.chdir("/")
+            shell = os.environ.get("SHELL", "/bin/bash")
+            subprocess.run([shell], check=True)
+
+    finally:
+        print("Exiting...")
+        for i in range(5):
+            try:
+                subprocess.run(["umount", "-R", mount_point], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                break
+            except subprocess.CalledProcessError:
+                time.sleep(1)
+        
+        if os.path.ismount(mount_point):
+            print(f"Could not unmount {mount_point}. Please unmount it manually.", file=sys.stderr)
+
+
+def handle_netupdate(args):
+    checkroot()
+    if args.break_system or not os.path.exists(
+        "/etc/obsidianctl-netupdate-enable-DONOTDELETE"
+    ):
+        print(
+            "Error: Image not found to be default image. It is not reccomended to continue.",
+            file=sys.stderr,
+        )
+        print(
+            "If you would like to continue... REMOVING ALL NON DEFAULT PACKAGES AND USERS, add the --break-system flag.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    print("Starting image netupdate...")
+    print("Getting latest image...")
+    os.system(
+        "curl https://github.com/Obsidian-OS/archiso/releases/download/latest/system.sfs -o /tmp/system.sfs"
+    )
+    handle_update(argparse.Namespace(slot=args.slot, system_sfs="/tmp/system.sfs"))
+
+
+def handle_slot_diff(args):
+    checkroot()
+    current = get_current_slot()
+    inactive = "b" if current == "a" else "a"
+    mount_current = f"/mnt/obsidian_slot_{current}"
+    mount_inactive = f"/mnt/obsidian_slot_{inactive}"
+    os.makedirs(mount_current, exist_ok=True)
+    os.makedirs(mount_inactive, exist_ok=True)
+    part_current = f"/dev/disk/by-label/root_{current}"
+    part_inactive = f"/dev/disk/by-label/root_{inactive}"
+    run_command(f"mount {part_current} {mount_current}")
+    run_command(f"mount {part_inactive} {mount_inactive}")
+    kernel_current = "unknown"
+    kernel_inactive = "unknown"
+    boot_current = os.path.join(mount_current, "boot")
+    boot_inactive = os.path.join(mount_inactive, "boot")
+    if os.path.exists(boot_current):
+        for f in os.listdir(boot_current):
+            if f.startswith("vmlinuz"):
+                kernel_current = f.replace("vmlinuz-", "")
+    if os.path.exists(boot_inactive):
+        for f in os.listdir(boot_inactive):
+            if f.startswith("vmlinuz"):
+                kernel_inactive = f.replace("vmlinuz-", "")
+
+    pkgs_current = set()
+    pkgs_inactive = set()
+    pacman_current = os.path.join(mount_current, "var/lib/pacman/local")
+    pacman_inactive = os.path.join(mount_inactive, "var/lib/pacman/local")
+    if os.path.exists(pacman_current):
+        pkgs_current = {d.split("-")[0] for d in os.listdir(pacman_current)}
+    if os.path.exists(pacman_inactive):
+        pkgs_inactive = {d.split("-")[0] for d in os.listdir(pacman_inactive)}
+
+    added = sorted(pkgs_inactive - pkgs_current)
+    removed = sorted(pkgs_current - pkgs_inactive)
+    print(f">> {current}->{inactive} Kernel: {kernel_current}->{kernel_inactive}")
+    print(f">> Packages {current}->{inactive}:")
+    for p in added:
+        print(f"+ {p}")
+    for p in removed:
+        print(f"- {p}")
+
+    run_command(f"umount {mount_current}")
+    run_command(f"umount {mount_inactive}")
+    os.rmdir(mount_current)
+    os.rmdir(mount_inactive)
 
 
 import argparse
@@ -1006,6 +1192,10 @@ def main():
       "slot", choices=["a", "b"], help="The slot to make active for once."
     )
     parser_switchonce.set_defaults(func=handle_switchonce)
+    parser_diff = subparsers.add_parser(
+        "slot-diff", help="Show diff between the two slots."
+    )
+    parser_diff.set_defaults(func=handle_slot_diff)
     parser_switch = subparsers.add_parser(
         "switch", help="Switch active boot slot to 'a' or 'b'."
     )
@@ -1033,6 +1223,35 @@ def main():
     )
     parser_sync.set_defaults(func=handle_sync)
 
+    parser_enter = subparsers.add_parser(
+        "enter-slot", help="Chroot into a slot."
+    )
+    parser_enter.add_argument(
+        "slot", choices=["a", "b"], help="The slot to chroot into."
+    )
+    parser_enter.add_argument(
+        "--enable-networking", action="store_true", help="Enable networking in the chroot."
+    )
+    parser_enter.add_argument(
+        "--mount-essentials", action="store_true", help="Mount /proc, /sys, and /dev."
+    )
+    parser_enter.add_argument(
+        "--mount-home", action="store_true", help="Bind mount /home into the chroot."
+    )
+    parser_enter.add_argument(
+        "--mount-root", action="store_true", help="Bind mount /root into the chroot."
+    )
+    parser_enter.set_defaults(func=handle_enter)
+    parser_netupdate = subparsers.add_parser(
+        "netupdate", help="Update a slot with the latest system image."
+    )
+    parser_netupdate.add_argument(
+        "slot", choices=["a", "b"], help="The slot to update."
+    )
+    parser_netupdate.add_argument(
+        "--break-system", action="store_true", help="Forcibly update even if not using an default system.sfs."
+    )
+    parser_netupdate.set_defaults(func=handle_netupdate)
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)

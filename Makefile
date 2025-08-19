@@ -1,4 +1,4 @@
-all: obsidianctl mkobsidiansfs obsidian-wizard archiso
+all: obsidianctl mkobsidiansfs obsidian-wizard installer archiso
 
 obsidianctl:
 	@echo "Building obsidianctl..."
@@ -17,6 +17,13 @@ mkobsidiansfs:
 obsidian-wizard:
 	@echo Building ObsidianOS Wizard...
 	cp obsidian-wizard/obsidian-wizard.py airootfs/usr/bin/obsidian-wizard
+
+installer:
+	@echo Building ObsidianOS Installer...
+	cp installer/installer.py airootfs/usr/bin/
+	cp installer/logo.png airootfs/usr/bin/
+	cp installer/obsidian-installer.desktop airootfs/usr/share/applications/
+	cp installer/obsidian-installer.desktop airootfs/home/liveuser/
 
 archiso:
 	@echo Building ObsidianOS ISO Image...

@@ -20,6 +20,7 @@ file_permissions=(
   ["/usr/bin/obsidianctl"]="0:0:755"
   ["/usr/bin/mkobsidiansfs"]="0:0:755"
   ["/usr/bin/obsidian-wizard"]="0:0:755"
+  ["/usr/bin/installer.py"]="0:0:755"
   ["/root"]="0:0:750"
   ["/root/.automated_script.sh"]="0:0:755"
   ["/root/.gnupg"]="0:0:700"

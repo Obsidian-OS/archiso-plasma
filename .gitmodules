@@ -10,3 +10,6 @@
 [submodule "obsidian-wizard"]
   path = obsidian-wizard
   url = https://github.com/Obsidian-OS/obsidian-wizard
+[submodule "installer"]
+	path = installer
+	url = https://github.com/Obsidian-OS/installer

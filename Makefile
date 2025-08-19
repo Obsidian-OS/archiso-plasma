@@ -23,7 +23,7 @@ installer:
 	cp installer/installer.py airootfs/usr/bin/
 	cp installer/logo.png airootfs/usr/bin/
 	cp installer/obsidianos-installer.desktop airootfs/usr/share/applications/
-	cp installer/obsidianos-installer.desktop airootfs/home/liveuser/
+	cp installer/obsidianos-installer.desktop airootfs/home/liveuser/Desktop
 
 archiso:
 	@echo Building ObsidianOS ISO Image...

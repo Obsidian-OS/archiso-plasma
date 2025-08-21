@@ -139,12 +139,9 @@ mesa-vdpau
 xorg-xwayland
 wayland
 wayland-protocols
-
 plasma-meta
-
 sddm
 sddm-kcm
-
 networkmanager
 packagekit-qt5
 discover
@@ -152,3 +149,4 @@ konsole
 dolphin
 firefox
 pyside6
+partitionmanager

@@ -1,5 +1,5 @@
 BUILD_DIR="obsidian_rootfs" # SquashFS generation directory # Below is default packages for an install of arch and this script to work.
-PACKAGES="$PACKAGES wget os-prober pv mesa vulkan-intel vulkan-radeon vulkan-nouveau libva-mesa-driver mesa-vdpau xorg-xwayland wayland wayland-protocols  plasma-meta sddm sddm-kcm packagekit-qt5 discover konsole dolphin firefox"
+PACKAGES="$PACKAGES wget os-prober pv mesa vulkan-intel vulkan-radeon vulkan-nouveau libva-mesa-driver mesa-vdpau xorg-xwayland wayland wayland-protocols  plasma-meta sddm sddm-kcm discover konsole dolphin firefox"
 OUTPUT_SFS="system.sfs" # Output SquashFS
 HOSTNAME="obsidianbtw"  # Hostname
 YAY_GET="obsidianctl-git plugind-git obsidianwall-git"

@@ -143,7 +143,6 @@ plasma-meta
 sddm
 sddm-kcm
 networkmanager
-packagekit-qt5
 discover
 konsole
 dolphin

@@ -1,4 +1,4 @@
-all: obsidianctl mkobsidiansfs obsidian-wizard installer archiso
+all: obsidianctl mkobsidiansfs obsidian-wizard installer obsidian-control archiso
 
 obsidianctl:
 	@echo "Building obsidianctl..."
@@ -24,6 +24,12 @@ installer:
 	cp installer/logo.png airootfs/usr/bin/
 	cp installer/obsidianos-installer.desktop airootfs/usr/share/applications/
 	cp installer/obsidianos-installer.desktop airootfs/home/liveuser/Desktop
+
+
+obsidian-control:
+	@echo Building ObsidianOS Control Center...
+	cp obsidian-control/obsidian-control.py airootfs/usr/bin/obsidian-control
+	cp obsidian-control/obsidian-control.desktop airootfs/usr/share/applications/
 
 archiso:
 	@echo Building ObsidianOS ISO Image...

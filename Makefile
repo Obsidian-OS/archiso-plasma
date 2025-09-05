@@ -4,12 +4,14 @@ SKIPSIGN ?= 0    # Set to 1 to skip signing
 
 all: obsidianctl mkobsidiansfs obsidian-wizard installer obsidian-control archiso sign
 
+.PHONY: obsidianctl
 obsidianctl:
 	@echo "Building obsidianctl..."
 	mkdir -p airootfs/usr/bin/
 	cd obsidianctl && make
 	cp obsidianctl/obsidianctl airootfs/usr/bin/
 
+.PHONY: mkobsidiansfs
 mkobsidiansfs:
 	@echo "Building mkobsidiansfs..."
 	mkdir -p airootfs/etc/
@@ -18,10 +20,12 @@ mkobsidiansfs:
 	cp mkobsidiansfs/system.sfs airootfs/etc/
 	cp mkobsidiansfs/mkobsidiansfs airootfs/usr/bin/
 
+.PHONY: obsidian-wizard
 obsidian-wizard:
 	@echo "Building ObsidianOS Wizard..."
 	cp obsidian-wizard/obsidian-wizard.py airootfs/usr/bin/obsidian-wizard
 
+.PHONY: installer
 installer:
 	@echo "Building ObsidianOS Installer..."
 	cp installer/installer.py airootfs/usr/bin/
@@ -29,34 +33,37 @@ installer:
 	cp installer/obsidianos-installer.desktop airootfs/usr/share/applications/
 	cp installer/obsidianos-installer.desktop airootfs/home/liveuser/Desktop
 
+.PHONY: obsidian-control
 obsidian-control:
 	@echo "Building ObsidianOS Control Center..."
 	cp obsidian-control/obsidian-control.py airootfs/usr/bin/obsidian-control
 	cp obsidian-control/obsidian-control.desktop airootfs/usr/share/applications/
 
+.PHONY: archiso
 archiso:
 	@echo "Building ObsidianOS ISO Image..."
 	mkarchiso -v -r .
-
+.PHONY: sign
 sign:
-ifeq ($(SKIPSIGN),1)
-	@echo "Skipping ISO signing (SKIPSIGN=1)"
-else
-	@for iso in $(ISO_PATTERN); do \
-		if [ -f "$$iso" ]; then \
-			if [ -z "$(GPG_KEY)" ]; then \
-				echo "Signing $$iso with default GPG key..."; \
-				gpg --armor --detach-sign "$$iso"; \
+	ifeq ($(SKIPSIGN),1)
+		@echo "Skipping ISO signing (SKIPSIGN=1)"
+	else
+		@for iso in $(ISO_PATTERN); do \
+			if [ -f "$$iso" ]; then \
+				if [ -z "$(GPG_KEY)" ]; then \
+					echo "Signing $$iso with default GPG key..."; \
+					gpg --armor --detach-sign "$$iso"; \
+				else \
+					echo "Signing $$iso with GPG key $(GPG_KEY)..."; \
+					gpg --armor --detach-sign --local-user $(GPG_KEY) "$$iso"; \
+				fi \
 			else \
-				echo "Signing $$iso with GPG key $(GPG_KEY)..."; \
-				gpg --armor --detach-sign --local-user $(GPG_KEY) "$$iso"; \
+				echo "No ISO files found to sign"; \
 			fi \
-		else \
-			echo "No ISO files found to sign"; \
-		fi \
-	done
-endif
+		done
+	endif
 
+.PHONY: clean
 clean:
 	rm -rf airootfs/*
 	rm -f *.iso *.iso.asc

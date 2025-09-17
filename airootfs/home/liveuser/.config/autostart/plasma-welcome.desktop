@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Exec=plasma-welcome --live-environment
+Name=KDE Welcome
+Comment=Launches the KDE Welcome Center for first-run setup.
+OnlyShowIn=KDE;
+X-GNOME-Autostart-Delay=5
+X-KDE-autostart-after=kded

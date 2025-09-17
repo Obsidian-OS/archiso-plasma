@@ -29,7 +29,7 @@ obsidian-wizard:
 installer:
 	@echo "Building ObsidianOS Installer..."
 	cp installer/installer.py airootfs/usr/bin/
-	cp installer/logo.png airootfs/usr/bin/
+	cp installer/logo.svg airootfs/usr/share/icons/obsidianos-installer.svg
 	cp installer/obsidianos-installer.desktop airootfs/usr/share/applications/
 	cp installer/obsidianos-installer.desktop airootfs/home/liveuser/Desktop
 

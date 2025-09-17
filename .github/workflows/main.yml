@@ -1,0 +1,68 @@
+name: Daily Auto Pull and Bump
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 12:00 AM UTC
+  workflow_dispatch:
+
+jobs:
+  auto-pull-bump:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 
+
+    - name: Set up Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Pull from origin main
+      run: |
+        git pull origin main
+        git submodule update --remote --merge --recursive --init
+
+    - name: Git pull in specific directories (skip if not found)
+      run: |
+        directories=("obsidianctl/" "mkobsidiansfs/" "obsidian-wizard/" "installer/" "airootfs/usr/preconf")
+        for dir in "${directories[@]}"; do
+          if [ -d "$dir" ] && [ -d "$dir/.git" ]; then
+            echo "Processing directory: $dir"
+            cd "$dir"
+            git pull origin main || echo "Failed to pull in $dir, continuing..."
+            cd - > /dev/null
+          else
+            echo "Skipping $dir (not found or not a git repository)"
+          fi
+        done
+
+    - name: Check for changes
+      id: check-changes
+      run: |
+        if git diff --quiet && git diff --staged --quiet; then
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+          echo "No changes to commit"
+        else
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "Changes detected"
+        fi
+
+    - name: Create bump commit
+      if: steps.check-changes.outputs.has_changes == 'true'
+      run: |
+        git add .
+        git commit -m "chore: bump"
+
+    - name: Create Pull Request
+      if: steps.check-changes.outputs.has_changes == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: bump"
+        title: "Daily Auto Bump"
+        body: "Automated daily bump commit"
+        branch: "daily-bump"
+        base: "main"
+        delete-branch: true
+   

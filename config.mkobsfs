@@ -9,4 +9,4 @@ ROOT_HAVEPASSWORD="nopassword"    # Set this to anything other than blank to rem
 ADMIN_USER="user"           # Creates an user with the 'wheel' group
 ADMIN_PASSWORD="user"
 POST_INSTALL="systemctl enable plugind"
-CUSTOM_SCRIPTS_DIR="mkobsfs-scripts"
+CUSTOM_SCRIPTS_DIR="../mkobsfs-scripts"

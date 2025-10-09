@@ -10,12 +10,11 @@ obsidianctl:
 .PHONY: mkobsidiansfs
 mkobsidiansfs:
 	@echo "Building mkobsidiansfs..."
-	mkdir -p airootfs/etc/
-	cd mkobsidiansfs
-	chmod +x mkobsidian*
-	cp mkobsidiansfs* airootfs/usr/bin
+	mkdir -p airootfs/usr/bin airootfs/etc
+	cd mkobsidiansfs && \
+	chmod +x mkobsidian* && \
+	cp mkobsidiansfs* ../airootfs/usr/bin && \
 	./mkobsidiansfs ../config.mkobsfs
-	cd ..
 
 .PHONY: obsidian-wizard
 obsidian-wizard:

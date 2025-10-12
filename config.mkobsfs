@@ -1,12 +1,4 @@
-BUILD_DIR="obsidian_rootfs" # SquashFS generation directory # Below is default packages for an install of arch and this script to work.
-PACKAGES="$PACKAGES wget os-prober pv mesa vulkan-intel vulkan-radeon vulkan-nouveau libva-mesa-driver mesa-vdpau xorg-xwayland wayland wayland-protocols  plasma-meta sddm sddm-kcm discover konsole dolphin firefox ark"
-OUTPUT_SFS="system.sfs" # Output SquashFS
-HOSTNAME="obsidianbtw"  # Hostname
-YAY_GET="obsidianctl-git plugind-git obsidianwall-git obsidian-control-git"
+PACKAGES="$PACKAGES mesa vulkan-intel vulkan-radeon vulkan-nouveau libva-mesa-driver mesa-vdpau xorg-xwayland wayland wayland-protocols  plasma-meta sddm sddm-kcm discover konsole dolphin firefox ark"
 SERVICES="$SERVICES sddm"
-NETUPDATE="" # DO NOT SET MANUALLY. USED INTERNALLY. DISABLED BECAUSE THIS IS NOT THE "raw" SYSTEM IMAGE
-ROOT_HAVEPASSWORD="nopassword"    # Set this to anything other than blank to remove the password from the root user.
-ADMIN_USER="user"           # Creates an user with the 'wheel' group
+ROOT_HAVEPASSWORD="nopassword"
 ADMIN_PASSWORD="user"
-POST_INSTALL="systemctl enable plugind"
-#CUSTOM_SCRIPTS_DIR="../mkobsfs-scripts"

@@ -1,3 +1,5 @@
+SERVICE=NetworkManager
+SERVICE_TARGET=multi-user
 all: obsidianctl mkobsidiansfs obsidian-wizard installer obsidian-control archiso sign
 
 .PHONY: obsidianctl
@@ -40,6 +42,11 @@ obsidian-control:
 archiso:
 	@echo "Building ObsidianOS ISO Image..."
 	mkarchiso -v -r .
+
+.PHONY: enable
+enable:
+	@echo Enabling $(SERVICE)...
+	ln -s /usr/lib/systemd/system/NetworkManager.service ./airootfs/etc/systemd/system/$(SERVICE_TARGET).target.wants/
 
 .PHONY: clean
 clean:

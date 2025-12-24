@@ -1,0 +1,8 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Name=Install ObsidianOS
+Exec=/usr/bin/ObsidianOSInstaller
+Icon=/usr/share/icons/obsidianos-installer.svg
+Terminal=false
+Categories=System;Utility;

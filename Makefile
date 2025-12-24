@@ -27,9 +27,9 @@ obsidian-wizard:
 .PHONY: installer
 installer:
 	@echo "Building ObsidianOS Installer..."
-	cp installer/installer.py airootfs/usr/bin/
+	make
+	make DIST=airootfs install
 	cp installer/logo.svg airootfs/usr/share/icons/obsidianos-installer.svg
-	cp installer/obsidianos-installer.desktop airootfs/usr/share/applications/
 	cp installer/obsidianos-installer.desktop airootfs/home/liveuser/Desktop
 
 .PHONY: obsidian-control

@@ -27,7 +27,7 @@ obsidian-wizard:
 .PHONY: installer
 installer:
 	@echo "Building ObsidianOS Installer..."
-	cd installer && make && make DIST=airootfs install
+	cd installer && make && make DIST=../airootfs install
 	cp installer/logo.svg airootfs/usr/share/icons/obsidianos-installer.svg
 	cp installer/obsidianos-installer.desktop airootfs/home/liveuser/Desktop
 
